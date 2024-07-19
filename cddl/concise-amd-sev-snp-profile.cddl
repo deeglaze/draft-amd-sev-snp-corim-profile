@@ -1,0 +1,69 @@
+$version-scheme /= &(sevsnpvm-familyimageid: -1)
+
+$$flags-map-extension //= &(
+  sevsnpvm-smt-allowed: -1,
+  sevsnpvm-migration-agent-allowed: -2,
+  sevsnpvm-debug-allowed: -3,
+  sevsnpvm-single-socket-only: -4,
+  sevsnpvm-cxl-allowed: -5,
+  sevsnpvm-mem-aes-256-xts-required: -6,
+  sevsnpvm-rapl-must-be-disabled: -7,
+  sevsnpvm-ciphertext-hiding-must-be-enabled: -8,
+)
+
+$$flags-map-extension //= &(
+  sevsnphost-smt-enabled: -65,
+  sevsnphost-tsme-enabled: -66,
+  sevsnphost-ecc-mem-reported-enabled:-67,
+  sevsnphost-rapl-disabled: -68,
+  sevsnphost-ciphertext-hiding-enabled: -69
+)
+
+$$measurement-values-map-extension //= &(sevsnpvm-policy-abi: -1) => sevsnpvm-policy-record
+
+sevsnpvm-policy-record = [
+  abi-major: byte,
+  abi-minor: byte
+]
+
+$$measurement-values-map-extension //= &(sevsnpvm-vmpl: -2) => 0..3
+$$measurement-values-map-extension //= &(sevsnpvm-host-data: -3) => bstr .size 32
+$$measurement-values-map-extension //= &(sevsnphost-sp-fw-current: -4) => sevsnphost-sp-fw-version-record
+
+sevsnphost-sp-fw-version-record = [
+  build-number: uint .size 1,
+  version-major: uint .size 1,
+  version-minor: uint .size 1
+]
+
+$$measurement-values-map-extension //= &(sevsnphost-sp-fw-committed: -5) => sevsnphost-sp-fw-version-record
+$$measurement-values-map-extension //= &(sevsnphost-current-tcb: -6) => sevsnphost-tcb-version-type-choice
+
+sevsnp-tcb-version-type-choice = sevsnphost-tcb-map / svn-type-choice
+
+sevsnphost-tcb-map = {
+  &(blspl: 0) => svn-type-choice
+  &(teespl: 1) => svn-type-choice
+  ? &(spl4: 2) => svn-type-choice
+  ? &(spl5: 3) => svn-type-choice
+  ? &(spl6: 4) => svn-type-choice
+  ? &(spl7: 5) => svn-type-choice
+  &(snpspl: 6) => svn-type-choice
+  &(ucodespl: 7) => svn-type-choice
+}
+
+$$measurement-values-map-extension //= &(sevsnphost-committed-tcb: -7) => sevsnphost-tcb-version-type-choice
+$$measurement-values-map-extension //= &(sevsnphost-launch-tcb: -8) => sevsnphost-tcb-version-type-choice
+$$measurement-values-map-extension //= &(sevsnphost-reported-tcb: -9) => sevsnphost-tcb-version-type-choice
+
+int-bytes-map = #6.32780({ * int => bytes })
+
+tagged-amd-sev-snp-instance-map = #6.32780(amd-sev-snp-instance-map)
+amd-sev-snp-instance-map = {
+  ? &(report-id: 0) => bytes .size 32
+  ? &(report-id-ma: 1) => bytes .size 32
+}
+
+$crypto-key-type-choice /= #6.32781(amd-sev-snp-pub-key-abi-digest)
+
+amd-sev-snp-pub-key-abi-digest = bytes .size 48
