@@ -1,0 +1,10 @@
+sevsnphost-tcb-map = {
+  &(blspl: 0) => svn-type-choice
+  &(teespl: 1) => svn-type-choice
+  ? &(spl4: 2) => svn-type-choice
+  ? &(spl5: 3) => svn-type-choice
+  ? &(spl6: 4) => svn-type-choice
+  ? &(spl7: 5) => svn-type-choice
+  &(snpspl: 6) => svn-type-choice
+  &(ucodespl: 7) => svn-type-choice
+}
