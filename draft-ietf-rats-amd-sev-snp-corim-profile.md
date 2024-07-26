@@ -82,6 +82,13 @@ informative:
     seriesinfo: Revision 0.10
     date: October 2023
     target: https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/user-guides/58369-010-versioned-loaded-endorsement-key-certificate-definition.pdf
+  SEC1:
+    title: Standards for Efficient Cryptography Group (SECG), "SEC1: Elliptic Curve Cryptography"
+    author:
+      org: Certicom Corp.
+    seriesinfo: Version 1.0
+    date: September 2000
+    target: https://www.secg.org/SEC1-Ver-1.0.pdf
 
 entity:
   SELF: "RFCthis"
@@ -221,14 +228,8 @@ The committed build/major/minor of the SP firmware is assigned codepoint -5:
 
 The host components other than AMD SP firmware are relevant to VM security posture, so a combination of host components' security patch levels are included as TCB versions.
 The TCB versions are expressed as a 64-bit number where each byte corresponds to a different component's security patch level.
-Reference value providers may provide minimum values for each component, or they can provide overall minimum values with a `sevsnphost-tcb-version-type-choice`:
-
-~~~ cddl
-{:include cddl/sevsnphost-tcb-version-type-choice.cddl}
-{:include cddl/sevsnphost-tcb-map.cddl}
-~~~
-
-The `svn` value in each component must be within `0..255`.
+Reference value providers MUST provide an overall minimum value for the combination of components, since lexicographic ordering is vulnerable to downgrade attacks.
+Tools for human readability MAY present the TCB version a component-wise manner, but that is outside the scope of this document.
 
 The `CURRENT_TCB` version of the host is assigned codepoint -6:
 
@@ -343,10 +344,10 @@ The function `is-set(x, b)` represents whether the bit at position `b` is set in
 *  The `&(sevsnpvm-hostdata: -3)` codepoint SHALL be set to `HOSTDATA` if nonzero. It MAY be set to `HOSTDATA` if all zeroes.
 *  The `&(sevsnphost-sp-fw-current: -4)` codepoint SHALL be set to `[ CURRENT_BUILD, CURRENT_MAJOR, CURRENT_MINOR ]`.
 *  The `&(sevsnphost-sp-fw-committed: -5)` codepoint SHALL be set to `[ COMMITTED_BUILD, COMMITTED_MAJOR, COMMITTED_MINOR ]`.
-*  The `&(sevsnphost-current-tcb: -6)` codepoint SHALL be set to `to-tcb-map(CURRENT_TCB)` (see {{sec-to-tcb-map}}).
-*  The `&(sevsnphost-committed-tcb: -7)` codepoint SHALL be set to `to-tcb-map(COMMITTED_TCB)` (see {{sec-to-tcb-map}}).
-*  The `&(sevsnphost-launch-tcb: -8)` codepoint SHALL be set to `to-tcb-map(LAUNCH_TCB)` (see {{sec-to-tcb-map}}).
-*  The `&(sevsnphost-reported-tcb: -9)` codepoint SHALL be set to `to-tcb-map(REPORTED_TCB)` (see {{sec-to-tcb-map}}).
+*  The `&(sevsnphost-current-tcb: -6)` codepoint SHALL be set to `552(CURRENT_TCB)`.
+*  The `&(sevsnphost-committed-tcb: -7)` codepoint SHALL be set to `552(COMMITTED_TCB)`
+*  The `&(sevsnphost-launch-tcb: -8)` codepoint SHALL be set to `552(LAUNCH_TCB)`.
+*  The `&(sevsnphost-reported-tcb: -9)` codepoint SHALL be set to `552(REPORTED_TCB)`.
 
 If `ID_BLOCK` information is available, it appears in its own `endorement-triple-record` with additional values in `authorized-by` beyond the attestation key.
 The `authorized-by` field is extended with `32780(ID_KEY_DIGEST)`, and if `AUTHOR_KEY_EN` is 1, then it is also extended with `32780(AUTHOR_KEY_DIGEST)`.
@@ -367,15 +368,29 @@ where `hexlify` is a function that translates the a byte string to its hexadecim
 
 ##### TCB comparison
 
-TODO: describe the comparison algorithm for tcb codepoints.
-
-#### `sevsnphost-tcb-map` construction {#sec-to-tcb-map}
-
-TODO: describe the byte breakdown of TCB to `sevsnphost-tcb-map`.
+The Verifier SHALL use tho `svn-type-choice` comparison algorithm from {-rats-corim}}.
 
 #### Key digest comparison {#sec-key-digest}
 
-TODO: describe how to compare AMD ABI public keys' digests with other `$crypto-key-type-choice` alternates (one should suffice).
+When `ID_BLOCK` is used, the full key information needed for signature verification is provided by the VMM at launch in an `ID_AUTH` structure.
+The SNP firmware verifies the signatures and adds digests of the signing key(s) to the attestation report as evidence of successful signature verification.
+When a Verifier does not have access to the original public key information used in `ID_AUTH`, the attestation report key digests can still be used as a representation of authority.
+
+The APPENDIX: Digital Signatures section of [SEV-SNP.API] specifies a representation of public keys and signatures.
+An attestation report key digest will be a SHA-384 digest of the 0x403 byte buffer representation of a public key.
+If an author key is used, its signature of the ID_KEY is assumed to exist and have passed given the SNP firmware specification.
+
+If a `$crypto-key-type-choice` key representation specifies an algorithm and parameters that are included in the Digital Signatures appendix, it is comparable to a #6.32780-tagged byte string.
+
+*  Two #6.32780-tagged byte strings match if and only if their encodings are bitwise equal.
+*  A thumbprint representation of a key is not comparable to a #6.32780-tagged byte string since the parameters are not extractable.
+*  A PKIX public key (#6.554-tagged `tstr`) or PKIX certificate (#6.555-tagged `tstr`) MAY be comparable to a #6.32780-tagged byte string.
+
+The [RFC3280] specified `AlgorithmIdentifier` has optional parameters based on the algorithm identifier.
+The AMD signature algorithm `1h` corresponds to algorithm `ecdsa-with-sha384` from section 3.2 of [RFC5758], but the parameters MUST be omitted.
+The `SubjectPublicKeyInfo` is therefore `id-ecPublicKey` from section 2.1.1 of [RFC5480] to further allow the curve to be specified, despite not further specifying that the signature is of a SHA-384 digest.
+The AMD ECSDA curve name `2h` corresponds to named curve `secp384r1` from section 2.2 of [RFC5480].
+The `ECPoint` conversion routines in section 2 of [SEC1] provide guidance on how the `QX` and `QY` little-endian big integers zero-padded to 72 bytes may be constructed.
 
 ## AMD SEV-SNP Launch Event Log
 

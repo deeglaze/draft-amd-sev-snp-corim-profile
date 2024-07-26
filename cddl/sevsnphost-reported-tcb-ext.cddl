@@ -1,1 +1,1 @@
-$$measurement-values-map-extension //= &(sevsnphost-reported-tcb: -9) => sevsnphost-tcb-version-type-choice
+$$measurement-values-map-extension //= &(sevsnphost-reported-tcb: -9) => svn-type-choice
